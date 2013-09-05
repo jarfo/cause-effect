@@ -53,8 +53,8 @@ def main():
     print "cnmodel.weigths", cnmodel.weights
     nnmodel = load_model("nnmodel.pkl")
     print "nnmodel.weigths", nnmodel.weights
-    amodel  = load_model("model2.pkl")
-    print "model2.weigths", amodel.weights
+    amodel  = load_model("model.pkl")
+    print "model.weigths", amodel.weights
 
     print "Extracting features"
     test = amodel.extract(test)
