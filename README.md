@@ -1,6 +1,6 @@
-contact name: José A. R. Fonollosa
-email: jose.fonollosa@upc.edu
-code version: 1.0
+author: JosÃ© A. R. Fonollosa
+email: jarfo@yahoo.com
+code version: 1.02
 code date: 19-AUG-2013
 installation instructions: python 2.7 code. No installation required
 required python modules: numpy, pandas, sklearn, scipy
