@@ -54,7 +54,7 @@ def read_data(set):
     try:
         path = get_path(set + "_features_path")
         features = pd.DataFrame.load(path)
-    except IOError:
+    except (IOError, EOFError):
         df_pairs = read_pairs(set)
         df_info = read_info(set)
         features = pd.concat([df_pairs, df_info], axis=1)

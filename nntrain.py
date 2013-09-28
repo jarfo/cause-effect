@@ -8,7 +8,7 @@ import cPickle as pickle
 import util
 
 MODEL = ce.CauseEffectSystemCombinationNN
-MODEL_PARAMS = {'weights':[0.09256175, 0.00048509, 0.03831249, 0.34161578, 0.46868591, 0.05833897]}
+MODEL_PARAMS = {'weights':[0.37, 0.52, 0.11]}
 
 def main():
     

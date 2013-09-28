@@ -9,7 +9,7 @@ import util
 
 MODEL = ce.CauseEffectSystemCombinationCN
 MODEL_PARAMS = {
-    'weights':[0.16658564, 0.21129943, 0.15732704, 0.15749277, 0.22415686, 0.08313826],
+    'weights':[0.3, 0.4, 0.3],
     'symmetrize':False
     }
 

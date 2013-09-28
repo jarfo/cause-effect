@@ -1,58 +1,9 @@
 import features as f
 import numpy as np
-from sklearn import svm, pipeline
+from sklearn import pipeline
 from sklearn.base import BaseEstimator
-from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, GradientBoostingRegressor, GradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
 
-rfr_params_cc = {
-    'n_estimators': 30,
-    'max_features': "auto",
-    'bootstrap': True,
-    'verbose': 0,
-    'min_density': 0.01,
-    'n_jobs': -1,
-    'min_samples_split': 8,
-    'min_samples_leaf': 1,
-    'random_state': 1
-    }
-              
-rfr_params_cn = {
-    'n_estimators': 60,
-    'max_features': "auto",
-    'bootstrap': True,
-    'verbose': 0,
-    'min_density': 0.01,
-    'n_jobs': -1,
-    'min_samples_split': 8,
-    'min_samples_leaf': 1,
-    'random_state': 1
-    }
-              
-rfr_params_nn = {
-    'n_estimators': 120,
-    'max_features': "auto",
-    'bootstrap': True,
-    'verbose': 0,
-    'min_density': 0.01,
-    'n_jobs': -1,
-    'min_samples_split': 8,
-    'min_samples_leaf': 1,
-    'random_state': 1
-    }
-              
-rfr_params_bb = {
-    'n_estimators': 10,
-    'max_features': "auto",
-    'bootstrap': True,
-    'verbose': 0,
-    'min_density': 0.01,
-    'n_jobs': -1,
-    'min_samples_split': 8,
-    'min_samples_leaf': 2,
-    'random_state': 1
-    }
-              
 gbc_params_cc = {
     'loss':'deviance',
     'learning_rate': 0.1,
@@ -109,11 +60,6 @@ gbc_params_union = {
     'verbose': 0
     }
 
-etr_params = {
-    'n_jobs': -1,
-    'random_state': 1
-    }
-
 selected_symmetric_categorical_features = [
     'Moment31[A,A type,B,B type]',
     'Moment31[B,B type,A,A type]',
@@ -148,7 +94,6 @@ selected_onestep_categorical_features = [
     'Normalized Error Probability[B,B type,A,A type]',
     ]
 
-#AUC: 0.867858 (train+train2)
 selected_direction_categorical_features = [
     'Conditional Distribution Entropy Variance[A,A type,B,B type]',
     'Conditional Distribution Entropy Variance[B,B type,A,A type]',
@@ -173,32 +118,20 @@ selected_independence_categorical_features = [
     'Abs[Sub[Conditional Distribution Entropy Variance[A,A type,B,B type],Conditional Distribution Entropy Variance[B,B type,A,A type]]]',
     'Abs[Sub[Conditional Distribution Kurtosis Variance[A,A type,B,B type],Conditional Distribution Kurtosis Variance[B,B type,A,A type]]]',
     'Abs[Sub[Normalized Error Probability[A,A type,B,B type],Normalized Error Probability[B,B type,A,A type]]]',
-#    'Abs[Sub[Polyfit Error[A,A type,B,B type],Polyfit Error[B,B type,A,A type]]]',
     'Normalized Discrete Mutual Information[Discrete Mutual Information[A,A type,B,B type],Min[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]]',
     ]
 
-# AUC: 0.769608 (t+t1+t2)
 selected_direction_numerical_features = [
     'Moment21[A,A type,B,B type]',
     'Moment21[B,B type,A,A type]',
-#    'Abs[Moment31[A,A type,B,B type]]',
-#    'Abs[Moment31[B,B type,A,A type]]',
     'Conditional Distribution Entropy Variance[A,A type,B,B type]',
     'Conditional Distribution Entropy Variance[B,B type,A,A type]',
-#    'Conditional Distribution Similarity[A,A type,B,B type]',
-#    'Conditional Distribution Similarity[B,B type,A,A type]', 
-#    'Conditional Distribution Skewness Variance[A,A type,B,B type]', 
-#    'Conditional Distribution Skewness Variance[B,B type,A,A type]', 
-#    'Conditional Distribution Kurtosis Variance[A,A type,B,B type]', 
-#    'Conditional Distribution Kurtosis Variance[B,B type,A,A type]', 
     'Discrete Entropy[A,A type]',
     'Discrete Entropy[B,B type]',
     'Normalized Entropy[A,A type]',
     'Normalized Entropy[B,B type]',
     'Number of Unique Samples[A]',
     'Number of Unique Samples[B]',
-#    'Polyfit Error[A,A type,B,B type]',
-#    'Polyfit Error[B,B type,A,A type]',
     'Skewness[A,A type]',
     'Skewness[B,B type]',
     'Uniform Divergence[A,A type]',
@@ -207,17 +140,12 @@ selected_direction_numerical_features = [
 
 selected_independence_numerical_features = [
     'Abs[Pearson R[A,A type,B,B type]]',
-#    'Abs[Sub[Abs[Moment21[A,A type,B,B type]],Abs[Moment21[B,B type,A,A type]]]]',
     'Abs[Sub[Abs[Moment31[A,A type,B,B type]],Abs[Moment31[B,B type,A,A type]]]]',
     'Abs[Sub[Moment31[A,A type,B,B type],Moment31[B,B type,A,A type]]]',
-#    'Abs[Sub[Conditional Distribution Entropy Variance[A,A type,B,B type],Conditional Distribution Entropy Variance[B,B type,A,A type]]]',
     'Abs[Sub[Conditional Distribution Kurtosis Variance[A,A type,B,B type],Conditional Distribution Kurtosis Variance[B,B type,A,A type]]]',
-#    'Abs[Sub[Conditional Distribution Similarity[A,A type,B,B type],Conditional Distribution Similarity[B,B type,A,A type]]]',
-#    'Abs[Sub[Conditional Distribution Skewness Variance[A,A type,B,B type],Conditional Distribution Skewness Variance[B,B type,A,A type]]]',
     'Abs[Sub[Normalized Discrete Entropy[A,A type],Normalized Discrete Entropy[B,B type]]]',
     'Polyfit Error[A,A type,B,B type]',
     'Polyfit Error[B,B type,A,A type]',
-#    'Abs[Sub[Skewness[A,A type],Skewness[B,B type]]]', 
     'Normalized Discrete Mutual Information[Discrete Mutual Information[A,A type,B,B type],Discrete Joint Entropy[A,A type,B,B type]]',
     'Normalized Entropy Baseline[B,B type]',
     'Normalized Entropy Baseline[A,A type]',
@@ -258,7 +186,6 @@ selected_onestep_numerical_features = [
     'Uniform Divergence[B,B type]'
     ]
 
-# AUC 0.792035 (train) / 0.788478 (t+t2) / 0.801174 (t+t1+t2)
 selected_symmetric_numerical_features = [
     'Abs[Moment21[A,A type,B,B type]]', 
     'Abs[Moment21[B,B type,A,A type]]', 
@@ -331,7 +258,6 @@ selected_independence_cn_features = [
     'Number of Unique Samples[B]', 
     ]
 
-#0.814370
 selected_onestep_cn_features = [
     'Abs[Moment21[A,A type,B,B type]]',
     'Abs[Moment21[B,B type,A,A type]]',
@@ -363,7 +289,6 @@ selected_onestep_cn_features = [
     'Skewness[B,B type]', 
     ]
 
-#0.809053
 selected_symmetric_cn_features = [
     'Conditional Distribution Entropy Variance[A,A type,B,B type]',
     'Conditional Distribution Entropy Variance[B,B type,A,A type]',
@@ -556,336 +481,6 @@ features_all = [
     'HSIC[A,A type,B,B type]',
     'Pearson R[A,A type,B,B type]',
     'Abs[Pearson R[A,A type,B,B type]]'
-    ]
-
-features_direction = [
-#    'Max[A]',
-#    'Max[B]',
-#    'Min[A]',
-#    'Min[B]',
-#    'Numerical[A type]',
-#    'Numerical[B type]',
-#    'Sub[Numerical[A type],Numerical[B type]]',
-#    'Abs[Sub[Numerical[A type],Numerical[B type]]]',
-    
-    'Number of Samples[A]',
-    'Log[Number of Samples[A]]',
-    
-    'Number of Unique Samples[A]',
-    'Number of Unique Samples[B]',
-#        'Max[Number of Unique Samples[A],Number of Unique Samples[B]]',
-#        'Min[Number of Unique Samples[A],Number of Unique Samples[B]]',
-#        'Sub[Number of Unique Samples[A],Number of Unique Samples[B]]',
-#        'Abs[Sub[Number of Unique Samples[A],Number of Unique Samples[B]]]',
-    
-    'Log[Number of Unique Samples[A]]',
-    'Log[Number of Unique Samples[B]]',
-#        'Max[Log[Number of Unique Samples[A]],Log[Number of Unique Samples[B]]]',
-#        'Min[Log[Number of Unique Samples[A]],Log[Number of Unique Samples[B]]]',
-#        'Sub[Log[Number of Unique Samples[A]],Log[Number of Unique Samples[B]]]',
-#        'Abs[Sub[Log[Number of Unique Samples[A]],Log[Number of Unique Samples[B]]]]',
-    
-    'Ratio of Unique Samples[A]',
-    'Ratio of Unique Samples[B]',
-#        'Max[Ratio of Unique Samples[A],Ratio of Unique Samples[B]]',
-#        'Min[Ratio of Unique Samples[A],Ratio of Unique Samples[B]]',
-#        'Sub[Ratio of Unique Samples[A],Ratio of Unique Samples[B]]',
-#        'Abs[Sub[Ratio of Unique Samples[A],Ratio of Unique Samples[B]]]',
-    
-    'Normalized Entropy Baseline[A,A type]',
-    'Normalized Entropy Baseline[B,B type]',
-#        'Max[Normalized Entropy Baseline[A,A type],Normalized Entropy Baseline[B,B type]]',
-#        'Min[Normalized Entropy Baseline[A,A type],Normalized Entropy Baseline[B,B type]]',
-#        'Sub[Normalized Entropy Baseline[A,A type],Normalized Entropy Baseline[B,B type]]',
-#        'Abs[Sub[Normalized Entropy Baseline[A,A type],Normalized Entropy Baseline[B,B type]]]',
-    
-    'Normalized Entropy[A,A type]',
-    'Normalized Entropy[B,B type]',
-#        'Max[Normalized Entropy[A,A type],Normalized Entropy[B,B type]]',
-#        'Min[Normalized Entropy[A,A type],Normalized Entropy[B,B type]]',
-#        'Sub[Normalized Entropy[A,A type],Normalized Entropy[B,B type]]',
-#        'Abs[Sub[Normalized Entropy[A,A type],Normalized Entropy[B,B type]]]',
-    
-    'IGCI[A,A type,B,B type]',
-    'IGCI[B,B type,A,A type]',
-#        'Sub[IGCI[A,A type,B,B type],IGCI[B,B type,A,A type]]',
-#        'Abs[Sub[IGCI[A,A type,B,B type],IGCI[B,B type,A,A type]]]',
-
-    'Gaussian Divergence[A,A type]',
-    'Gaussian Divergence[B,B type]',
-#        'Max[Gaussian Divergence[A,A type],Gaussian Divergence[B,B type]]',
-#        'Min[Gaussian Divergence[A,A type],Gaussian Divergence[B,B type]]',
-#        'Sub[Gaussian Divergence[A,A type],Gaussian Divergence[B,B type]]',
-#        'Abs[Sub[Gaussian Divergence[A,A type],Gaussian Divergence[B,B type]]]',
-    
-    'Uniform Divergence[A,A type]',
-    'Uniform Divergence[B,B type]',
-#        'Max[Uniform Divergence[A,A type],Uniform Divergence[B,B type]]',
-#        'Min[Uniform Divergence[A,A type],Uniform Divergence[B,B type]]',
-#        'Sub[Uniform Divergence[A,A type],Uniform Divergence[B,B type]]',
-#        'Abs[Sub[Uniform Divergence[A,A type],Uniform Divergence[B,B type]]]',
-
-    'Discrete Entropy[A,A type]',
-    'Discrete Entropy[B,B type]',
-    'Max[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]',
-#        'Min[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]',
-#        'Sub[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]',
-#        'Abs[Sub[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]]',
-    
-    'Normalized Discrete Entropy[A,A type]',
-    'Normalized Discrete Entropy[B,B type]',
-#        'Max[Normalized Discrete Entropy[A,A type],Normalized Discrete Entropy[B,B type]]',
-#        'Min[Normalized Discrete Entropy[A,A type],Normalized Discrete Entropy[B,B type]]',
-#        'Sub[Normalized Discrete Entropy[A,A type],Normalized Discrete Entropy[B,B type]]',
-#        'Abs[Sub[Normalized Discrete Entropy[A,A type],Normalized Discrete Entropy[B,B type]]]',
-    
-#        'Discrete Joint Entropy[A,A type,B,B type]',
-#        'Normalized Discrete Joint Entropy[A,A type,B,B type]',
-#        'Discrete Conditional Entropy[A,A type,B,B type]',
-#        'Discrete Conditional Entropy[B,B type,A,A type]',
-#        'Discrete Mutual Information[A,A type,B,B type]',
-#        'Normalized Discrete Mutual Information[Discrete Mutual Information[A,A type,B,B type],Min[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]]',
-    'Normalized Discrete Mutual Information[Discrete Mutual Information[A,A type,B,B type],Discrete Joint Entropy[A,A type,B,B type]]',
-#        'Adjusted Mutual Information[A,A type,B,B type]',
-    
-    'Polyfit[A,A type,B,B type]',
-    'Polyfit[B,B type,A,A type]',
-#        'Sub[Polyfit[A,A type,B,B type],Polyfit[B,B type,A,A type]]',
-#        'Abs[Sub[Polyfit[A,A type,B,B type],Polyfit[B,B type,A,A type]]]',
-
-    'Polyfit Error[A,A type,B,B type]',
-    'Polyfit Error[B,B type,A,A type]',
-#        'Sub[Polyfit Error[A,A type,B,B type],Polyfit Error[B,B type,A,A type]]',
-#        'Abs[Sub[Polyfit Error[A,A type,B,B type],Polyfit Error[B,B type,A,A type]]]',
-
-    'Normalized Error Probability[A,A type,B,B type]',
-    'Normalized Error Probability[B,B type,A,A type]',
-#        'Sub[Normalized Error Probability[A,A type,B,B type],Normalized Error Probability[B,B type,A,A type]]',
-#        'Abs[Sub[Normalized Error Probability[A,A type,B,B type],Normalized Error Probability[B,B type,A,A type]]]',
-
-    'Conditional Distribution Entropy Variance[A,A type,B,B type]',
-    'Conditional Distribution Entropy Variance[B,B type,A,A type]',
-#        'Sub[Conditional Distribution Entropy Variance[A,A type,B,B type],Conditional Distribution Entropy Variance[B,B type,A,A type]]',
-#        'Abs[Sub[Conditional Distribution Entropy Variance[A,A type,B,B type],Conditional Distribution Entropy Variance[B,B type,A,A type]]]',
-
-    'Conditional Distribution Skewness Variance[A,A type,B,B type]',
-    'Conditional Distribution Skewness Variance[B,B type,A,A type]',
-#       'Sub[Conditional Distribution Skewness Variance[A,A type,B,B type],Conditional Distribution Skewness Variance[B,B type,A,A type]]',
-#       'Abs[Sub[Conditional Distribution Skewness Variance[A,A type,B,B type],Conditional Distribution Skewness Variance[B,B type,A,A type]]]',
-
-    'Conditional Distribution Kurtosis Variance[A,A type,B,B type]',
-    'Conditional Distribution Kurtosis Variance[B,B type,A,A type]',
-#       'Sub[Conditional Distribution Kurtosis Variance[A,A type,B,B type],Conditional Distribution Kurtosis Variance[B,B type,A,A type]]',
-#       'Abs[Sub[Conditional Distribution Kurtosis Variance[A,A type,B,B type],Conditional Distribution Kurtosis Variance[B,B type,A,A type]]]',
-
-    'Conditional Distribution Similarity[A,A type,B,B type]',
-    'Conditional Distribution Similarity[B,B type,A,A type]',
-#        'Sub[Conditional Distribution Similarity[A,A type,B,B type],Conditional Distribution Similarity[B,B type,A,A type]]',
-#        'Abs[Sub[Conditional Distribution Similarity[A,A type,B,B type],Conditional Distribution Similarity[B,B type,A,A type]]]',
-
-    'Moment21[A,A type,B,B type]',
-    'Moment21[B,B type,A,A type]',
-#        'Sub[Moment21[A,A type,B,B type],Moment21[B,B type,A,A type]]',
-#        'Abs[Sub[Moment21[A,A type,B,B type],Moment21[B,B type,A,A type]]]',
-    
-#        'Abs[Moment21[A,A type,B,B type]]',
-#        'Abs[Moment21[B,B type,A,A type]]',
-#        'Sub[Abs[Moment21[A,A type,B,B type]],Abs[Moment21[B,B type,A,A type]]]',
-#        'Abs[Sub[Abs[Moment21[A,A type,B,B type]],Abs[Moment21[B,B type,A,A type]]]]',
-
-    'Moment31[A,A type,B,B type]',
-    'Moment31[B,B type,A,A type]',
-#        'Sub[Moment31[A,A type,B,B type],Moment31[B,B type,A,A type]]',
-#        'Abs[Sub[Moment31[A,A type,B,B type],Moment31[B,B type,A,A type]]]',
-            
-#        'Abs[Moment31[A,A type,B,B type]]',
-#        'Abs[Moment31[B,B type,A,A type]]',
-#        'Sub[Abs[Moment31[A,A type,B,B type]],Abs[Moment31[B,B type,A,A type]]]',
-#        'Abs[Sub[Abs[Moment31[A,A type,B,B type]],Abs[Moment31[B,B type,A,A type]]]]',
-
-    'Skewness[A,A type]',
-    'Skewness[B,B type]',
-#        'Sub[Skewness[A,A type],Skewness[B,B type]]',
-#        'Abs[Sub[Skewness[A,A type],Skewness[B,B type]]]',        
-    
-#        'Abs[Skewness[A,A type]]',
-#        'Abs[Skewness[B,B type]]',
-#        'Max[Abs[Skewness[A,A type]],Abs[Skewness[B,B type]]]',
-#        'Min[Abs[Skewness[A,A type]],Abs[Skewness[B,B type]]]',
-#        'Sub[Abs[Skewness[A,A type]],Abs[Skewness[B,B type]]]',
-#        'Abs[Sub[Abs[Skewness[A,A type]],Abs[Skewness[B,B type]]]]',
-    
-    
-    'Kurtosis[A,A type]',
-    'Kurtosis[B,B type]',
-#        'Max[Kurtosis[A,A type],Kurtosis[B,B type]]',
-#        'Min[Kurtosis[A,A type],Kurtosis[B,B type]]',
-#        'Sub[Kurtosis[A,A type],Kurtosis[B,B type]]',
-#        'Abs[Sub[Kurtosis[A,A type],Kurtosis[B,B type]]]',
-
-#        'HSIC[A,A type,B,B type]',
-#        'Pearson R[A,A type,B,B type]',
-#        'Abs[Pearson R[A,A type,B,B type]]'
-    ]
-
-optimized_onestep_features = [   
-    'Abs[Sub[Conditional Distribution Similarity[A,A type,B,B type],Conditional Distribution Similarity[B,B type,A,A type]]]',
-    'Adjusted Mutual Information[A,A type,B,B type]',
-    'Conditional Distribution Entropy Variance[A,A type,B,B type]',
-    'Conditional Distribution Entropy Variance[B,B type,A,A type]',
-    'Conditional Distribution Kurtosis Variance[A,A type,B,B type]',
-    'Conditional Distribution Kurtosis Variance[B,B type,A,A type]',
-    'Conditional Distribution Similarity[A,A type,B,B type]',
-    'Conditional Distribution Similarity[B,B type,A,A type]',
-    'Conditional Distribution Skewness Variance[A,A type,B,B type]',
-    'Conditional Distribution Skewness Variance[B,B type,A,A type]',
-    'Discrete Entropy[A,A type]',
-    'Discrete Entropy[B,B type]',
-    'Gaussian Divergence[A,A type]',
-    'Gaussian Divergence[B,B type]',
-    'IGCI[A,A type,B,B type]',
-    'IGCI[B,B type,A,A type]',
-    'Kurtosis[A,A type]',
-    'Kurtosis[B,B type]',
-    'Log[Number of Samples[A]]',
-    'Log[Number of Unique Samples[A]]',
-    'Log[Number of Unique Samples[B]]',
-    'Max[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]',
-    'Max[Gaussian Divergence[A,A type],Gaussian Divergence[B,B type]]',
-    'Moment21[A,A type,B,B type]',
-    'Moment21[B,B type,A,A type]',
-    'Moment31[A,A type,B,B type]',
-    'Moment31[B,B type,A,A type]',
-    'Normalized Discrete Entropy[A,A type]',
-    'Normalized Discrete Entropy[B,B type]',
-    'Normalized Discrete Joint Entropy[A,A type,B,B type]',
-    'Normalized Discrete Mutual Information[Discrete Mutual Information[A,A type,B,B type],Discrete Joint Entropy[A,A type,B,B type]]',
-    'Normalized Entropy Baseline[A,A type]',
-    'Normalized Entropy Baseline[B,B type]',
-    'Normalized Entropy[A,A type]',
-    'Normalized Entropy[B,B type]',
-    'Normalized Error Probability[A,A type,B,B type]',
-    'Normalized Error Probability[B,B type,A,A type]',
-    'Number of Samples[A]',
-    'Number of Unique Samples[A]',
-    'Number of Unique Samples[B]',
-    'Numerical[A type]',
-    'Polyfit Error[A,A type,B,B type]',
-    'Polyfit Error[B,B type,A,A type]',
-    'Polyfit[A,A type,B,B type]',
-    'Polyfit[B,B type,A,A type]',
-#    'Ratio of Unique Samples[A]',
-#    'Ratio of Unique Samples[B]',
-    'Skewness[A,A type]',
-    'Skewness[B,B type]',
-    'Sub[Abs[Skewness[A,A type]],Abs[Skewness[B,B type]]]',
-    'Sub[Gaussian Divergence[A,A type],Gaussian Divergence[B,B type]]',
-    'Sub[Polyfit Error[A,A type,B,B type],Polyfit Error[B,B type,A,A type]]',
-    'Sub[Skewness[A,A type],Skewness[B,B type]]',
-    'Uniform Divergence[A,A type]',
-    'Uniform Divergence[B,B type]'
-]
-
-optimized_symmetric_features = [
-    'Conditional Distribution Kurtosis Variance[A,A type,B,B type]',
-    'Conditional Distribution Kurtosis Variance[B,B type,A,A type]',
-    'Conditional Distribution Similarity[A,A type,B,B type]',
-    'Conditional Distribution Similarity[B,B type,A,A type]',
-    'Conditional Distribution Skewness Variance[A,A type,B,B type]',
-    'Conditional Distribution Skewness Variance[B,B type,A,A type]',
-#    'Discrete Conditional Entropy[A,A type,B,B type]',
-#    'Discrete Conditional Entropy[B,B type,A,A type]',
-    'Discrete Entropy[B,B type]',
-    'Discrete Entropy[A,A type]',
-    'Gaussian Divergence[A,A type]',
-    'Gaussian Divergence[B,B type]',
-    'Kurtosis[A,A type]',
-    'Kurtosis[B,B type]',
-    'Log[Number of Unique Samples[A]]',
-    'Log[Number of Unique Samples[B]]',
-    'Max[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]',
-    'Normalized Discrete Entropy[A,A type]',
-    'Normalized Discrete Entropy[B,B type]',
-    'Normalized Discrete Mutual Information[Discrete Mutual Information[A,A type,B,B type],Discrete Joint Entropy[A,A type,B,B type]]',
-    'Normalized Entropy Baseline[A,A type]',
-    'Normalized Entropy Baseline[B,B type]',
-    'Normalized Entropy[A,A type]',
-    'Normalized Entropy[B,B type]',
-    'Number of Samples[A]',
-    'Number of Unique Samples[A]',
-    'Number of Unique Samples[B]',
-    'Polyfit Error[A,A type,B,B type]',
-    'Polyfit Error[B,B type,A,A type]',
-    'Skewness[A,A type]',
-    'Skewness[B,B type]',
-    'Uniform Divergence[A,A type]',
-    'Uniform Divergence[B,B type]'
-    ]
-
-optimized_features_direction = [
-    'Conditional Distribution Kurtosis Variance[A,A type,B,B type]',
-    'Conditional Distribution Kurtosis Variance[B,B type,A,A type]',
-    'Conditional Distribution Similarity[A,A type,B,B type]',
-    'Conditional Distribution Similarity[B,B type,A,A type]',
-    'Conditional Distribution Skewness Variance[A,A type,B,B type]',
-    'Conditional Distribution Skewness Variance[B,B type,A,A type]',
-    'Discrete Entropy[B,B type]',
-    'Discrete Entropy[A,A type]',
-    'Gaussian Divergence[A,A type]',
-    'Gaussian Divergence[B,B type]',
-    'Kurtosis[A,A type]',
-    'Kurtosis[B,B type]',
-    'Log[Number of Unique Samples[A]]',
-    'Log[Number of Unique Samples[B]]',
-    'Max[Discrete Entropy[A,A type],Discrete Entropy[B,B type]]',
-    'Normalized Discrete Entropy[A,A type]',
-    'Normalized Discrete Entropy[B,B type]',
-    'Normalized Discrete Mutual Information[Discrete Mutual Information[A,A type,B,B type],Discrete Joint Entropy[A,A type,B,B type]]',
-    'Normalized Entropy Baseline[A,A type]',
-    'Normalized Entropy Baseline[B,B type]',
-    'Normalized Entropy[A,A type]',
-    'Normalized Entropy[B,B type]',
-    'Number of Samples[A]',
-    'Number of Unique Samples[A]',
-    'Number of Unique Samples[B]',
-    'Polyfit Error[A,A type,B,B type]',
-    'Polyfit Error[B,B type,A,A type]',
-    'Skewness[A,A type]',
-    'Skewness[B,B type]',
-    'Uniform Divergence[A,A type]',
-    'Uniform Divergence[B,B type]'
-    ]
-
-optimized_features_independence = [
-    'Adjusted Mutual Information[A,A type,B,B type]',
-    'Conditional Distribution Entropy Variance[A,A type,B,B type]',
-    'Conditional Distribution Entropy Variance[B,B type,A,A type]',
-    'Discrete Conditional Entropy[A,A type,B,B type]',
-    'Discrete Conditional Entropy[B,B type,A,A type]',
-    'Discrete Entropy[A,A type]',
-    'Discrete Entropy[B,B type]',
-    'Gaussian Divergence[A,A type]',
-    'Gaussian Divergence[B,B type]',
-    'Log[Number of Samples[A]]',
-    'Log[Number of Unique Samples[A]]',
-    'Log[Number of Unique Samples[B]]',
-    'Moment21[A,A type,B,B type]',
-    'Moment21[B,B type,A,A type]',
-    'Normalized Entropy[A,A type]',
-    'Normalized Entropy[B,B type]',
-    'Number of Unique Samples[A]',
-    'Number of Unique Samples[B]',
-    'Numerical[A type]',
-    'Numerical[B type]',
-    'Polyfit Error[A,A type,B,B type]',
-    'Polyfit Error[B,B type,A,A type]',
-    'Polyfit[A,A type,B,B type]',
-    'Polyfit[B,B type,A,A type]',
-#    'Ratio of Unique Samples[A]',
-#    'Ratio of Unique Samples[B]',
-    'Skewness[A,A type]',
-    'Skewness[B,B type]',
-    'Sub[IGCI[A,A type,B,B type],IGCI[B,B type,A,A type]]',
     ]
 
 class Pipeline(pipeline.Pipeline):
@@ -1103,22 +698,6 @@ class CauseEffectSystemCombinationCN(CauseEffectSystemCombination):
             CauseEffectEstimatorID(
                 features_direction=selected_direction_cn_features, 
                 features_independence=selected_independence_cn_features,
-                regressor=RandomForestRegressor,
-                params=rfr_params_cn,
-                symmetrize=symmetrize), 
-            CauseEffectEstimatorSymmetric(
-                features=selected_symmetric_cn_features, 
-                regressor=RandomForestRegressor,
-                params=rfr_params_cn,
-                symmetrize=symmetrize),
-            CauseEffectEstimatorOneStep(
-                features=selected_onestep_cn_features,
-                regressor=RandomForestRegressor,
-                params=rfr_params_cn,
-                symmetrize=symmetrize),
-            CauseEffectEstimatorID(
-                features_direction=selected_direction_cn_features, 
-                features_independence=selected_independence_cn_features,
                 regressor=GradientBoostingClassifier,
                 params=gbc_params_cn,
                 symmetrize=symmetrize), 
@@ -1142,22 +721,6 @@ class CauseEffectSystemCombinationNN(CauseEffectSystemCombination):
             CauseEffectEstimatorID(
                 features_direction=selected_direction_numerical_features, 
                 features_independence=selected_independence_numerical_features,
-                regressor=RandomForestRegressor,
-                params=rfr_params_nn,
-                symmetrize=symmetrize), 
-            CauseEffectEstimatorSymmetric(
-                features=selected_symmetric_numerical_features, 
-                regressor=RandomForestRegressor,
-                params=rfr_params_nn,
-                symmetrize=symmetrize),
-            CauseEffectEstimatorOneStep(
-                features=selected_onestep_numerical_features,
-                regressor=RandomForestRegressor,
-                params=rfr_params_nn,
-                symmetrize=symmetrize),
-            CauseEffectEstimatorID(
-                features_direction=selected_direction_numerical_features, 
-                features_independence=selected_independence_numerical_features,
                 regressor=GradientBoostingClassifier,
                 params=gbc_params_nn,
                 symmetrize=symmetrize), 
@@ -1178,22 +741,6 @@ class CauseEffectSystemCombinationUnion(CauseEffectSystemCombination):
     def __init__(self, extractor=f.extract_features, weights=None, symmetrize=True):
         self.extractor = extractor
         self.systems = [
-            CauseEffectEstimatorID(
-                features_direction=sorted(list(set(selected_direction_categorical_features + selected_direction_cn_features + selected_direction_numerical_features))), 
-                features_independence=sorted(list(set(selected_independence_categorical_features + selected_independence_cn_features + selected_independence_numerical_features))),
-                regressor=RandomForestRegressor,
-                params=rfr_params_nn,
-                symmetrize=symmetrize), 
-            CauseEffectEstimatorSymmetric(
-                features=sorted(list(set(selected_symmetric_categorical_features + selected_symmetric_cn_features + selected_symmetric_numerical_features))),
-                regressor=RandomForestRegressor,
-                params=rfr_params_nn,
-                symmetrize=symmetrize),
-            CauseEffectEstimatorOneStep(
-                features=sorted(list(set(selected_onestep_categorical_features + selected_onestep_cn_features + selected_onestep_numerical_features))),
-                regressor=RandomForestRegressor,
-                params=rfr_params_nn,
-                symmetrize=symmetrize),
             CauseEffectEstimatorID(
                 features_direction=sorted(list(set(selected_direction_categorical_features + selected_direction_cn_features + selected_direction_numerical_features))), 
                 features_independence=sorted(list(set(selected_independence_categorical_features + selected_independence_cn_features + selected_independence_numerical_features))),
