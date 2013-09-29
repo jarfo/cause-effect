@@ -33,14 +33,14 @@ python predict.py CEfinal_valid_pairs_head.csv CEfinal_valid_publicinfo_head.csv
 Time to process: 50 seconds
 Result: CEfinal_valid_predictions_head.csv
 SampleID,Target
-valid1, 0.86626939
-valid2,-0.14576527
-valid3,-0.00214854
-valid4, 0.03190699
-valid5,-0.02935714
-valid6,-1.48423133
-valid7, 0.01924071
-valid8,-0.00057277
-valid9,-0.00184624
+valid1, 0.900748410
+valid2,-0.138517826
+valid3,-0.001153197
+valid4, 0.031484862
+valid5,-0.025577883
+valid6,-1.585543675
+valid7, 0.019442410
+valid8,-0.000503116
+valid9,-0.001260493
 
 See the data page of the Kaggle cause-effect competition for information about the data
