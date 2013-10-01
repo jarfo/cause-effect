@@ -1,3 +1,12 @@
+"""
+Cause-effect direction prediction using the model saved in model.pkl
+
+"""
+
+# Author: Jose A. R. Fonollosa <jarfo@yahoo.com>
+#
+# License: Apache, Version 2.0
+
 import sys
 import csv
 import numpy as np
@@ -47,43 +56,14 @@ def main():
     test = read_data(pairs_path, info_path)
     
     print "Loading the classifier"
-    ccmodel = load_model("ccmodel.pkl")
-    print "ccmodel.weigths", ccmodel.weights
-    cnmodel = load_model("cnmodel.pkl")
-    print "cnmodel.weigths", cnmodel.weights
-    nnmodel = load_model("nnmodel.pkl")
-    print "nnmodel.weigths", nnmodel.weights
-    amodel  = load_model("model.pkl")
-    print "model.weigths", amodel.weights
+	model  = load_model("model.pkl")
+    print "model.weigths", model.weights
 
     print "Extracting features"
-    test = amodel.extract(test)
+    test = model.extract(test)
     
     print "Making predictions"
-    ptest = np.zeros((6,test.shape[0]))     
-    
-    ccfilter = ((test['A type'] != 'Numerical') & (test['B type'] != 'Numerical'))
-    cnfilter = ((test['A type'] != 'Numerical') & (test['B type'] == 'Numerical'))
-    ncfilter = ((test['A type'] == 'Numerical') & (test['B type'] != 'Numerical'))
-    nnfilter = ((test['A type'] == 'Numerical') & (test['B type'] == 'Numerical'))
-    
-    ccptest = ccmodel.predict(test[ccfilter])
-    cnptest = cnmodel.predict(test[cnfilter])
-    nnptest = nnmodel.predict(test[nnfilter])
-    aptest  =  amodel.predict(test)
-    
-    ptest[0, ccfilter] = ccptest
-    ptest[1, cnfilter] = cnptest
-    ptest[1, ncfilter] = -cnptest
-    ptest[2, nnfilter] = nnptest
-    ptest[3, ccfilter]            = aptest[ccfilter]
-    ptest[4, cnfilter | ncfilter] = aptest[cnfilter | ncfilter]
-    ptest[5, nnfilter]            = aptest[nnfilter]
-    
-    wopt = [0.80, 0.80, 1.00, 1.75, 1.75, 1.75]
-    print "wopt = ", wopt
-    predictions = np.dot(wopt, ptest)
-    
+    predictions = model.predict(test)
     print "Writing predictions to file"
     write_predictions(pred_path, test[0::2], predictions[0::2])
 

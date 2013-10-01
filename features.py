@@ -1,3 +1,12 @@
+"""
+Feature extraction
+
+"""
+
+# Author: Jose A. R. Fonollosa <jarfo@yahoo.com>
+#
+# License: Apache, Version 2.0
+
 import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.metrics import adjusted_mutual_info_score
@@ -8,6 +17,7 @@ from collections import Counter, defaultdict
 import pandas as pd
 import operator
 import hsic
+import math
 
 BINARY      = "Binary"
 CATEGORICAL = "Categorical"
@@ -459,19 +469,19 @@ class MultiColumnTransform(BaseEstimator):
 
     def transform(self, X, y=None):
         return np.array([self.transformer(*x[1]) for x in X.iterrows()], ndmin=2).T
-
+    
 all_features = [
-    ('Max', 'A', SimpleTransform(max)),
-    ('Max', 'B', SimpleTransform(max)),
-    ('Min', 'A', SimpleTransform(min)),
-    ('Min', 'B', SimpleTransform(min)),
-    ('Numerical', 'A type', SimpleTransform(lambda x: int(numerical(x)))),
-    ('Numerical', 'B type', SimpleTransform(lambda x: int(numerical(x)))),
+    ('Max', 'A', SimpleTransform(np.max)),
+    ('Max', 'B', SimpleTransform(np.max)),
+    ('Min', 'A', SimpleTransform(np.min)),
+    ('Min', 'B', SimpleTransform(np.min)),
+    ('Numerical', 'A type', SimpleTransform(numerical)),
+    ('Numerical', 'B type', SimpleTransform(numerical)),
     ('Sub', ['Numerical[A type]','Numerical[B type]'], MultiColumnTransform(operator.sub)),
     ('Abs', 'Sub[Numerical[A type],Numerical[B type]]', SimpleTransform(abs)),
     
     ('Number of Samples', 'A', SimpleTransform(len)),
-    ('Log', 'Number of Samples[A]', SimpleTransform(np.log)),
+    ('Log', 'Number of Samples[A]', SimpleTransform(math.log)),
     
     ('Number of Unique Samples', 'A', SimpleTransform(count_unique)),
     ('Number of Unique Samples', 'B', SimpleTransform(count_unique)),
@@ -480,8 +490,8 @@ all_features = [
     ('Sub', ['Number of Unique Samples[A]','Number of Unique Samples[B]'], MultiColumnTransform(operator.sub)),
     ('Abs', 'Sub[Number of Unique Samples[A],Number of Unique Samples[B]]', SimpleTransform(abs)),
     
-    ('Log', 'Number of Unique Samples[A]', SimpleTransform(np.log)),
-    ('Log', 'Number of Unique Samples[B]', SimpleTransform(np.log)),
+    ('Log', 'Number of Unique Samples[A]', SimpleTransform(math.log)),
+    ('Log', 'Number of Unique Samples[B]', SimpleTransform(math.log)),
     ('Max', ['Log[Number of Unique Samples[A]]','Log[Number of Unique Samples[B]]'], MultiColumnTransform(max)),
     ('Min', ['Log[Number of Unique Samples[A]]','Log[Number of Unique Samples[B]]'], MultiColumnTransform(min)),
     ('Sub', ['Log[Number of Unique Samples[A]]','Log[Number of Unique Samples[B]]'], MultiColumnTransform(operator.sub)),
@@ -629,14 +639,41 @@ all_features = [
     ('Abs', 'Pearson R[A,A type,B,B type]', SimpleTransform(abs))
     ]
 
-def extract_features(X, features=all_features, y=None):
-    for feature_name, column_names, extractor in features:
+def calculate_method(args):
+    obj = args[0]
+    name = args[1]
+    margs = args[2]
+    method = getattr(obj, name)
+    return method(*margs)
+
+def extract_features(X, features=all_features, y=None, pmap=lambda tsk: map(calculate_star, tsk)):
+    def complete_feature_name(feature_name, column_names):
         if type(column_names) is list:
-            feature_name = feature_name + '[' + ','.join(column_names) + ']'
+            long_feature_name = feature_name + '[' + ','.join(column_names) + ']'
         else:
-            feature_name = feature_name + '[' + column_names + ']'            
-        if (feature_name[0] == '+') or (feature_name not in X.columns):
-            if feature_name[0] == '+':
-                feature_name = feature_name[1:]
-            X[feature_name] = extractor.fit_transform(X[column_names], y)
+            long_feature_name = feature_name + '[' + column_names + ']'
+        if feature_name[0] == '+':
+            long_feature_name = long_feature_name[1:]
+        return long_feature_name
+    
+    def is_in_X(column_names):
+        if type(column_names) is list:
+            return set(column_names).issubset(X.columns)
+        else:
+            return column_names in X.columns
+        
+    def can_be_extracted(feature_name, column_names):
+        long_feature_name = complete_feature_name(feature_name, column_names)
+        to_be_extracted = ((feature_name[0] == '+') or (long_feature_name not in X.columns))
+        return to_be_extracted and is_in_X(column_names)
+
+    while True:
+        new_features_list = [(complete_feature_name(feature_name, column_names), column_names, extractor) 
+            for feature_name, column_names, extractor in features if can_be_extracted(feature_name, column_names)]
+        if not new_features_list:
+            break
+        task = [(extractor, 'fit_transform', (X[column_names], y)) for _, column_names, extractor in new_features_list]
+        new_features = pmap(task)
+        for (feature_name, _, _), feature in zip(new_features_list, new_features):
+            X[feature_name] = feature
     return X

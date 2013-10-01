@@ -1,4 +1,8 @@
-import csv
+"""
+File I/O Utilities.
+
+"""
+
 import json
 import numpy as np
 import os
@@ -53,7 +57,8 @@ def read_info(set):
 def read_data(set):
     try:
         path = get_path(set + "_features_path")
-        features = pd.DataFrame.load(path)
+        features = pd.DataFrame();
+        features = features.load(path);
     except (IOError, EOFError):
         df_pairs = read_pairs(set)
         df_info = read_info(set)

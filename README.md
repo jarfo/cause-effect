@@ -26,7 +26,7 @@ TRAINING (Aprox. 4 hours)
 - Download train, SUP1 and SUP2 data from Kaggle (cause-effect competition)
 - Edit SETTINGS.json to indicate your data folders
 - Train the models
-    ./train.sh
+> python train.py train train1 train2
 
 FAST TEST (first 9 entries of the validation data)
 python predict.py CEfinal_valid_pairs_head.csv CEfinal_valid_publicinfo_head.csv CEfinal_valid_predictions_head.csv
