@@ -1,4 +1,4 @@
-   Copyright José A. R. Fonollosa <jarfo@yahoo.com>
+   Copyright Josï¿½ A. R. Fonollosa <jarfo@yahoo.com>
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ pandas==0.10.0
 scikit-learn==0.13.1
 scipy==0.10.1
 
-TRAINING (Aprox. 30 minutes)
+TRAINING (Aprox. 45 minutes)
 - Download train, SUP1 and SUP2 data from Kaggle (cause-effect competition)
 - Edit SETTINGS.json to indicate your data folders
 - Train the models: python train.py train train1 train2
