@@ -251,6 +251,14 @@ def calculate_method(args):
     method = getattr(obj, name)
     return method(*margs)
 
+def pmap(func, mlist, n_jobs):
+    if n_jobs != 1:
+        pool = Pool(n_jobs if n_jobs != -1 else None)
+        mmap = pool.map
+    else:
+        mmap = map
+    return mmap(func, mlist)
+
 class CauseEffectSystemCombination(BaseEstimator):  
     def __init__(self, extractor=f.extract_features, weights=None, symmetrize=True, n_jobs=-1):
         self.extractor = extractor
@@ -274,31 +282,27 @@ class CauseEffectSystemCombination(BaseEstimator):
                 symmetrize=symmetrize),
         ]
         self.weights = weights
-        if n_jobs != 1:
-            self.pool = Pool(n_jobs if n_jobs != -1 else None, maxtasksperchild=1)
-            self.parallel = lambda tsk: self.pool.map(calculate_method, tsk)
-        else:
-            self.parallel = lambda tsk: map(calculate_method, tsk)
+        self.n_jobs = n_jobs
 
     def extract(self, features):
-        return self.extractor(features, pmap=self.parallel)
+        return self.extractor(features, n_jobs=self.n_jobs)
 
     def fit(self, X, y=None):
         task = [(m, 'fit', (X, y)) for m in self.systems]
-        self.parallel(task)
+        self.systems = pmap(calculate_method, task, self.n_jobs)
         return self
 
     def fit_transform(self, X, y=None):
         task = [(m, 'fit_transform', (X, y)) for m in self.systems]
-        return self.parallel(task)
+        return pmap(calculate_method, task, self.n_jobs)
 
     def transform(self, X):
         task = [(m, 'transform', (X,)) for m in self.systems]
-        return self.parallel(task)
+        return pmap(calculate_method, task, self.n_jobs)
 
     def predict(self, X):
         task = [(m, 'predict', (X,)) for m in self.systems]
-        a = np.array(self.parallel(task))
+        a = np.array(pmap(calculate_method, task, self.n_jobs))
         if self.weights is not None:
             return np.dot(self.weights, a)
         else:

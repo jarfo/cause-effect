@@ -52,16 +52,16 @@ def main():
     pairs_path = sys.argv[1]
     info_path = sys.argv[2]
     pred_path = sys.argv[3]
-    
+
     test = read_data(pairs_path, info_path)
-    
+
     print "Loading the classifier"
-	model  = load_model("model.pkl")
+    model = load_model("model.pkl")
     print "model.weigths", model.weights
 
     print "Extracting features"
     test = model.extract(test)
-    
+
     print "Making predictions"
     predictions = model.predict(test)
     print "Writing predictions to file"

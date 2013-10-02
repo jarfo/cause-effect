@@ -14,6 +14,7 @@ from scipy.special import psi
 from scipy.stats.stats import pearsonr
 from scipy.stats import skew, kurtosis
 from collections import Counter, defaultdict
+from multiprocessing import Pool
 import pandas as pd
 import operator
 import hsic
@@ -646,7 +647,13 @@ def calculate_method(args):
     method = getattr(obj, name)
     return method(*margs)
 
-def extract_features(X, features=all_features, y=None, pmap=lambda tsk: map(calculate_star, tsk)):
+def extract_features(X, features=all_features, y=None, n_jobs=-1):
+    if n_jobs != 1:
+        pool = Pool(n_jobs if n_jobs != -1 else None)
+        pmap = pool.map
+    else:
+        pmap = map
+        
     def complete_feature_name(feature_name, column_names):
         if type(column_names) is list:
             long_feature_name = feature_name + '[' + ','.join(column_names) + ']'
@@ -673,7 +680,7 @@ def extract_features(X, features=all_features, y=None, pmap=lambda tsk: map(calc
         if not new_features_list:
             break
         task = [(extractor, 'fit_transform', (X[column_names], y)) for _, column_names, extractor in new_features_list]
-        new_features = pmap(task)
+        new_features = pmap(calculate_method, task)
         for (feature_name, _, _), feature in zip(new_features_list, new_features):
             X[feature_name] = feature
     return X
