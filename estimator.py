@@ -13,7 +13,6 @@ from sklearn import pipeline
 from sklearn.base import BaseEstimator
 from sklearn.ensemble import GradientBoostingClassifier
 from multiprocessing import Pool
-import operator
 
 gbc_params = {
     'loss':'deviance',

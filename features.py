@@ -71,17 +71,13 @@ def binary_entropy(p, base):
     h = -(p*np.log(p) + (1-p)*np.log(1-p)) if (p != 0) and (p != 1) else 0
     return h/np.log(base)
 
-def discrete_probability(x, tx, ffactor=3, maxdev=3):    
-    if numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev+1)):
-        x = (x - np.mean(x))/np.std(x)
-        xf = x[abs(x) < maxdev]
-        x = (x - np.mean(xf))/np.std(xf)
-        x = np.floor(x*ffactor)
-        x[x > ffactor*maxdev] = ffactor*maxdev
-        x[x < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
-    return Counter(x)
+def discretized_values(x, tx, ffactor=3, maxdev=3):
+    if numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev)+1):
+        return range(-ffactor*maxdev, ffactor*maxdev+1)
+    else:
+        return sorted(list(set(x)))
 
-def discretized_sequences(x, tx, y, ty, ffactor=3, maxdev=3):
+def discretized_sequences0(x, tx, y, ty, ffactor=3, maxdev=3):
     if numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev+1)):
         x = (x - np.mean(x))/np.std(x)
         xf = x[abs(x) < maxdev]
@@ -99,6 +95,27 @@ def discretized_sequences(x, tx, y, ty, ffactor=3, maxdev=3):
         y[y < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
         
     return x, y
+
+def len_discretized_values(x, tx, ffactor=3, maxdev=3):
+    return len(discretized_values(x, tx, ffactor, maxdev))
+
+def discrete_probability(x, tx, ffactor=3, maxdev=3):    
+    x = discretized_sequence(x, tx, ffactor, maxdev)
+    return Counter(x)
+
+def discretized_sequence(x, tx, ffactor=3, maxdev=3, norm=True):
+    if not norm or (numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev)+1)):
+        if norm:
+            x = (x - np.mean(x))/np.std(x)
+            xf = x[abs(x) < maxdev]
+            x = (x - np.mean(xf))/np.std(xf)
+        x = np.round(x*ffactor)
+        x[x >  ffactor*maxdev] =  ffactor*maxdev
+        x[x < -ffactor*maxdev] = -ffactor*maxdev
+    return x
+
+def discretized_sequences(x, tx, y, ty, ffactor=3, maxdev=3):
+    return discretized_sequence(x, tx, ffactor, maxdev), discretized_sequence(y, ty, ffactor, maxdev)
 
 def normalized_error_probability(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
@@ -145,8 +162,8 @@ def discrete_joint_entropy(x, tx, y, ty, ffactor=3, maxdev=3):
 def normalized_discrete_joint_entropy(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
     e = discrete_entropy(zip(x,y), CATEGORICAL)
-    nx = 2*(ffactor*maxdev+1) if numerical(tx) else count_unique(x)
-    ny = 2*(ffactor*maxdev+1) if numerical(ty) else count_unique(y)
+    nx = len_discretized_values(x, tx, ffactor, maxdev)
+    ny = len_discretized_values(y, ty, ffactor, maxdev)
     if nx*ny>0: e = e/np.log(nx*ny)
     return e
 
@@ -166,7 +183,7 @@ def discrete_mutual_information(x, tx, y, ty):
 
 def normalized_discrete_entropy(x, tx, ffactor=3, maxdev=3):
     e = discrete_entropy(x, tx, ffactor, maxdev)
-    n = 2*(ffactor*maxdev+1) if numerical(tx) else count_unique(x)
+    n = len_discretized_values(x, tx, ffactor, maxdev)
     if n>0: e = e/np.log(n)
     return e
 
@@ -355,7 +372,7 @@ def fit_noise_entropy(x, tx, y, ty, ffactor=3, maxdev=3, minc=10):
         if cx[a] > minc:
             entyx.append(discrete_entropy(y[x==a], CATEGORICAL))
     if len(entyx) == 0: return 0
-    n = 2*(ffactor*maxdev+1) if numerical(ty) else count_unique(y)
+    n = len_discretized_values(y, ty, ffactor, maxdev)
     return np.std(entyx)/np.log(n)
 
 def fit_noise_skewness(x, tx, y, ty, ffactor=3, maxdev=3, minc=8):
@@ -394,14 +411,11 @@ def conditional_distribution_similarity(x, tx, y, ty, ffactor=2, maxdev=3, minc=
                 cyx = Counter(yx)
                 pyxa = np.array([cyx[i] for i in yrange], dtype=float)
                 pyxa.sort()
-            elif count_unique(y) > 2*(ffactor*maxdev+1):
-                yx = (yx - np.mean(yx))
-                #if np.std(yx) > 0: yx = yx/np.std(yx)
-                yx = np.floor(yx*ffactor)
-                yx[yx > ffactor*maxdev] = ffactor*maxdev
-                yx[yx < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
+            elif count_unique(y) > len_discretized_values(y, ty, ffactor, maxdev):
+                yx = (yx - np.mean(yx))/np.std(y)
+                yx = discretized_sequence(yx, ty, ffactor, maxdev, norm=False)
                 cyx = Counter(yx.astype(int))
-                pyxa = np.array([cyx[i] for i in range(-(ffactor*maxdev+1), (ffactor*maxdev+1))], dtype=float)
+                pyxa = np.array([cyx[i] for i in discretized_values(y, ty, ffactor, maxdev)], dtype=float)
             else:
                 cyx = Counter(yx)
                 pyxa = [cyx[i] for i in yrange]
@@ -470,7 +484,7 @@ class MultiColumnTransform(BaseEstimator):
 
     def transform(self, X, y=None):
         return np.array([self.transformer(*x[1]) for x in X.iterrows()], ndmin=2).T
-    
+
 all_features = [
     ('Max', 'A', SimpleTransform(np.max)),
     ('Max', 'B', SimpleTransform(np.max)),
