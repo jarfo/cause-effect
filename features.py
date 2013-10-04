@@ -71,47 +71,32 @@ def binary_entropy(p, base):
     h = -(p*np.log(p) + (1-p)*np.log(1-p)) if (p != 0) and (p != 1) else 0
     return h/np.log(base)
 
-def discretized_values(x, tx, ffactor=3, maxdev=3):
-    if numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev)+1):
-        return range(-ffactor*maxdev, ffactor*maxdev+1)
-    else:
-        return sorted(list(set(x)))
-
-def discretized_sequences0(x, tx, y, ty, ffactor=3, maxdev=3):
-    if numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev+1)):
-        x = (x - np.mean(x))/np.std(x)
-        xf = x[abs(x) < maxdev]
-        x = (x - np.mean(xf))/np.std(xf)
-        x = np.floor(x*ffactor)
-        x[x > ffactor*maxdev] = ffactor*maxdev
-        x[x < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
-
-    if numerical(ty) and (count_unique(y) > 2*(ffactor*maxdev+1)):
-        y = (y - np.mean(y))/np.std(y)
-        yf = y[abs(y) < maxdev]
-        y = (y - np.mean(yf))/np.std(yf)
-        y = np.floor(y*ffactor)
-        y[y > ffactor*maxdev] = ffactor*maxdev
-        y[y < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
-        
-    return x, y
-
-def len_discretized_values(x, tx, ffactor=3, maxdev=3):
-    return len(discretized_values(x, tx, ffactor, maxdev))
-
-def discrete_probability(x, tx, ffactor=3, maxdev=3):    
+def discrete_probability(x, tx, ffactor, maxdev):    
     x = discretized_sequence(x, tx, ffactor, maxdev)
     return Counter(x)
 
-def discretized_sequence(x, tx, ffactor=3, maxdev=3, norm=True):
-    if not norm or (numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev)+1)):
+def discretized_values(x, tx, ffactor, maxdev):
+    if numerical(tx) and count_unique(x) > (2*ffactor*maxdev+1):
+        vmax =  ffactor*maxdev
+        vmin = -ffactor*maxdev
+        return range(vmin, vmax+1)
+    else:
+        return sorted(list(set(x)))
+
+def len_discretized_values(x, tx, ffactor, maxdev):
+    return len(discretized_values(x, tx, ffactor, maxdev))
+
+def discretized_sequence(x, tx, ffactor, maxdev, norm=True):
+    if not norm or (numerical(tx) and count_unique(x) > len_discretized_values(x, tx, ffactor, maxdev)):
         if norm:
             x = (x - np.mean(x))/np.std(x)
             xf = x[abs(x) < maxdev]
             x = (x - np.mean(xf))/np.std(xf)
         x = np.round(x*ffactor)
-        x[x >  ffactor*maxdev] =  ffactor*maxdev
-        x[x < -ffactor*maxdev] = -ffactor*maxdev
+        vmax =  ffactor*maxdev
+        vmin = -ffactor*maxdev
+        x[x > vmax] = vmax
+        x[x < vmin] = vmin
     return x
 
 def discretized_sequences(x, tx, y, ty, ffactor=3, maxdev=3):
