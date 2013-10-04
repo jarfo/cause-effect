@@ -12,8 +12,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-code version: 2.00
-code date: 02-OCT-2013
+code version: 2.01
+code date: 04-OCT-2013
 installation instructions: python 2.7 code. No installation required
 required python modules: numpy, pandas, sklearn, scipy
 Tested on a Linux machine (Fedora 17) with python 2.7.3 and the following versions of the python libraries
