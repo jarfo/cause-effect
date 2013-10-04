@@ -3,6 +3,7 @@ File I/O Utilities.
 
 """
 
+import csv
 import json
 import numpy as np
 import os
@@ -90,8 +91,9 @@ def write_predictions(out_path, train, predictions):
 def read_predictions(in_path):
     return pd.read_csv(in_path, index_col="SampleID")
 
-def read_solution():
-    solution_path = get_path("solution_path")
+def read_solution(solution_path=None):
+    if not solution_path:
+        solution_path = get_path("solution_path")
     return pd.read_csv(solution_path, index_col="SampleID")
 
 def save_model(model, out_path=None):
@@ -113,6 +115,7 @@ def read_submission():
     submission_path = get_path("submission_path")
     return read_predictions(submission_path)
 
-def write_submission(valid, predictions):
+def write_submission(valid, predictions, info=None):
     submission_path = get_path("submission_path")
+    submission_path = submission_path if info is None else submission_path + "_" + info
     write_predictions(submission_path, valid, predictions)
