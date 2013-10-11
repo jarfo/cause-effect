@@ -256,31 +256,6 @@ def igci(x, tx, y, ty):
     hxy = np.sum(counter*np.log(delta[:,0]/np.abs(delta[:,1])))/len(x)
     return hxy
 
-def gaussian_divergence(x, tx, m=2):
-    x = normalize(x, tx)
-    cx = Counter(x)
-    xk = np.array(cx.keys(), dtype=float)
-    xk.sort()
-    delta = np.zeros(len(xk))
-    if len(xk) > 1:
-        delta[0] = xk[1] - xk[0]
-        delta[1:-1] = (xk[m:] - xk[:-m])/m
-        delta[-1] = xk[-1] - xk[-2]
-    else:
-        delta = np.array(np.sqrt(12))
-    counter = np.array([cx[i] for i in xk], dtype=float)
-    boundaries = np.zeros(len(xk) + 1)
-    boundaries[0] = xk[0] - delta[0]/2
-    boundaries[1:-1] = (xk[:-1] + xk[1:])/2
-    boundaries[-1] = xk[-1] + delta[-1]/2
-    refvalues = (boundaries[1:]**3 - boundaries[:-1]**3)/6
-    refvalues = refvalues/delta
-    factor = np.sqrt(2*np.pi)
-    hx = np.sum(counter*(refvalues - np.log(delta/counter)))/len(x) + np.log(factor)
-    hx -= np.log(len(x))
-    hx += (psi(m) - np.log(m))
-    return hx
-
 def uniform_divergence(x, tx, m=2):
     x = normalize(x, tx)
     cx = Counter(x)
@@ -522,13 +497,6 @@ all_features = [
     ('IGCI', ['B','B type','A','A type'], MultiColumnTransform(igci)),
     ('Sub', ['IGCI[A,A type,B,B type]','IGCI[B,B type,A,A type]'], MultiColumnTransform(operator.sub)),
     ('Abs', 'Sub[IGCI[A,A type,B,B type],IGCI[B,B type,A,A type]]', SimpleTransform(abs)),
-
-    ('Gaussian Divergence', ['A','A type'], MultiColumnTransform(gaussian_divergence)),
-    ('Gaussian Divergence', ['B','B type'], MultiColumnTransform(gaussian_divergence)),
-    ('Max', ['Gaussian Divergence[A,A type]','Gaussian Divergence[B,B type]'], MultiColumnTransform(max)),
-    ('Min', ['Gaussian Divergence[A,A type]','Gaussian Divergence[B,B type]'], MultiColumnTransform(min)),
-    ('Sub', ['Gaussian Divergence[A,A type]','Gaussian Divergence[B,B type]'], MultiColumnTransform(operator.sub)),
-    ('Abs', 'Sub[Gaussian Divergence[A,A type],Gaussian Divergence[B,B type]]', SimpleTransform(abs)),
     
     ('Uniform Divergence', ['A','A type'], MultiColumnTransform(uniform_divergence)),
     ('Uniform Divergence', ['B','B type'], MultiColumnTransform(uniform_divergence)),

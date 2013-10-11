@@ -57,7 +57,7 @@ def main():
 
     print "Loading the classifier"
     model = load_model("model.pkl")
-    print "model.weigths", model.weights
+    print "model.weights", model.weights
 
     print "Extracting features"
     test = model.extract(test)
