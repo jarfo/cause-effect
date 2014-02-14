@@ -102,7 +102,7 @@ def normalized_error_probability(x, tx, y, ty, ffactor=3, maxdev=3):
     pxy = pxy/pxy.sum()
     perr = 1 - np.sum(pxy.max(axis=1))
     max_perr = 1 - np.max(pxy.sum(axis=0))
-    pnorm = perr/max_perr
+    pnorm = perr/max_perr if max_perr > 0 else perr
     assert (pnorm <= 1)
     return pnorm
 
