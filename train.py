@@ -1,3 +1,12 @@
+"""
+Cause-effect model training
+
+"""
+
+# Author: Jose A. R. Fonollosa <jarfo@yahoo.com>
+#
+# License: Apache, Version 2.0
+
 import sys
 import data_io
 import numpy as np
@@ -8,8 +17,8 @@ from scipy.optimize import fmin
 import cPickle as pickle
 import util
 
-MODEL = ce.CauseEffectSystemCombinationUnion
-MODEL_PARAMS = {'weights':[1.22353269e-01, 3.76000482e-05, 1.10125572e-02, 3.15214274e-01, 2.96745988e-01, 2.54636311e-01]}
+MODEL = ce.CauseEffectSystemCombination
+MODEL_PARAMS = {'weights':[0.383, 0.370, 0.247], 'n_jobs':-1}
 
 def main():
     

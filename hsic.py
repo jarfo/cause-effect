@@ -1,3 +1,12 @@
+"""
+HSIC independence test
+
+"""
+
+# Author: Jose A. R. Fonollosa <jarfo@yahoo.com>
+#
+# License: Apache, Version 2.0
+
 import numpy as np
 
 def rbf_dot2(p1, p2, deg):
@@ -38,7 +47,7 @@ def rbf_dot(X, deg):
     return H
 
 
-def FastHsicTestGamma(X, Y, sig=[-1,-1]):
+def FastHsicTestGamma(X, Y, sig=[-1,-1], maxpnt = 200):
 #This function implements the HSIC independence test using a Gamma approximation
 #to the test threshold
 #Inputs:
@@ -49,8 +58,7 @@ def FastHsicTestGamma(X, Y, sig=[-1,-1]):
 #Outputs: 
 #        testStat: test statistic
 #        
-#Use at most 200 points to save time.
-    maxpnt = 200
+#Use at most maxpnt points to save time.
 
     m = X.shape[0]
     if m>maxpnt:

@@ -1,3 +1,12 @@
+"""
+Random permutation of a symmetrized database
+
+"""
+
+# Author: Jose A. R. Fonollosa <jarfo@yahoo.com>
+#
+# License: Apache, Version 2.0
+
 import numpy as np
 
 def random_permutation(x, y, seed=14777777):

@@ -1,3 +1,12 @@
+"""
+Feature extraction
+
+"""
+
+# Author: Jose A. R. Fonollosa <jarfo@yahoo.com>
+#
+# License: Apache, Version 2.0
+
 import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.metrics import adjusted_mutual_info_score
@@ -5,9 +14,11 @@ from scipy.special import psi
 from scipy.stats.stats import pearsonr
 from scipy.stats import skew, kurtosis
 from collections import Counter, defaultdict
+from multiprocessing import Pool
 import pandas as pd
 import operator
 import hsic
+import math
 
 BINARY      = "Binary"
 CATEGORICAL = "Categorical"
@@ -60,34 +71,36 @@ def binary_entropy(p, base):
     h = -(p*np.log(p) + (1-p)*np.log(1-p)) if (p != 0) and (p != 1) else 0
     return h/np.log(base)
 
-def discrete_probability(x, tx, ffactor=3, maxdev=3):    
-    if numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev+1)):
-        x = (x - np.mean(x))/np.std(x)
-        xf = x[abs(x) < maxdev]
-        x = (x - np.mean(xf))/np.std(xf)
-        x = np.floor(x*ffactor)
-        x[x > ffactor*maxdev] = ffactor*maxdev
-        x[x < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
+def discrete_probability(x, tx, ffactor, maxdev):    
+    x = discretized_sequence(x, tx, ffactor, maxdev)
     return Counter(x)
 
-def discretized_sequences(x, tx, y, ty, ffactor=3, maxdev=3):
-    if numerical(tx) and (count_unique(x) > 2*(ffactor*maxdev+1)):
-        x = (x - np.mean(x))/np.std(x)
-        xf = x[abs(x) < maxdev]
-        x = (x - np.mean(xf))/np.std(xf)
-        x = np.floor(x*ffactor)
-        x[x > ffactor*maxdev] = ffactor*maxdev
-        x[x < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
+def discretized_values(x, tx, ffactor, maxdev):
+    if numerical(tx) and count_unique(x) > (2*ffactor*maxdev+1):
+        vmax =  ffactor*maxdev
+        vmin = -ffactor*maxdev
+        return range(vmin, vmax+1)
+    else:
+        return sorted(list(set(x)))
 
-    if numerical(ty) and (count_unique(y) > 2*(ffactor*maxdev+1)):
-        y = (y - np.mean(y))/np.std(y)
-        yf = y[abs(y) < maxdev]
-        y = (y - np.mean(yf))/np.std(yf)
-        y = np.floor(y*ffactor)
-        y[y > ffactor*maxdev] = ffactor*maxdev
-        y[y < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
-        
-    return x, y
+def len_discretized_values(x, tx, ffactor, maxdev):
+    return len(discretized_values(x, tx, ffactor, maxdev))
+
+def discretized_sequence(x, tx, ffactor, maxdev, norm=True):
+    if not norm or (numerical(tx) and count_unique(x) > len_discretized_values(x, tx, ffactor, maxdev)):
+        if norm:
+            x = (x - np.mean(x))/np.std(x)
+            xf = x[abs(x) < maxdev]
+            x = (x - np.mean(xf))/np.std(xf)
+        x = np.round(x*ffactor)
+        vmax =  ffactor*maxdev
+        vmin = -ffactor*maxdev
+        x[x > vmax] = vmax
+        x[x < vmin] = vmin
+    return x
+
+def discretized_sequences(x, tx, y, ty, ffactor=3, maxdev=3):
+    return discretized_sequence(x, tx, ffactor, maxdev), discretized_sequence(y, ty, ffactor, maxdev)
 
 def normalized_error_probability(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
@@ -134,8 +147,8 @@ def discrete_joint_entropy(x, tx, y, ty, ffactor=3, maxdev=3):
 def normalized_discrete_joint_entropy(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
     e = discrete_entropy(zip(x,y), CATEGORICAL)
-    nx = 2*(ffactor*maxdev+1) if numerical(tx) else count_unique(x)
-    ny = 2*(ffactor*maxdev+1) if numerical(ty) else count_unique(y)
+    nx = len_discretized_values(x, tx, ffactor, maxdev)
+    ny = len_discretized_values(y, ty, ffactor, maxdev)
     if nx*ny>0: e = e/np.log(nx*ny)
     return e
 
@@ -155,7 +168,7 @@ def discrete_mutual_information(x, tx, y, ty):
 
 def normalized_discrete_entropy(x, tx, ffactor=3, maxdev=3):
     e = discrete_entropy(x, tx, ffactor, maxdev)
-    n = 2*(ffactor*maxdev+1) if numerical(tx) else count_unique(x)
+    n = len_discretized_values(x, tx, ffactor, maxdev)
     if n>0: e = e/np.log(n)
     return e
 
@@ -243,31 +256,6 @@ def igci(x, tx, y, ty):
     hxy = np.sum(counter*np.log(delta[:,0]/np.abs(delta[:,1])))/len(x)
     return hxy
 
-def gaussian_divergence(x, tx, m=2):
-    x = normalize(x, tx)
-    cx = Counter(x)
-    xk = np.array(cx.keys(), dtype=float)
-    xk.sort()
-    delta = np.zeros(len(xk))
-    if len(xk) > 1:
-        delta[0] = xk[1] - xk[0]
-        delta[1:-1] = (xk[m:] - xk[:-m])/m
-        delta[-1] = xk[-1] - xk[-2]
-    else:
-        delta = np.array(np.sqrt(12))
-    counter = np.array([cx[i] for i in xk], dtype=float)
-    boundaries = np.zeros(len(xk) + 1)
-    boundaries[0] = xk[0] - delta[0]/2
-    boundaries[1:-1] = (xk[:-1] + xk[1:])/2
-    boundaries[-1] = xk[-1] + delta[-1]/2
-    refvalues = (boundaries[1:]**3 - boundaries[:-1]**3)/6
-    refvalues = refvalues/delta
-    factor = np.sqrt(2*np.pi)
-    hx = np.sum(counter*(refvalues - np.log(delta/counter)))/len(x) + np.log(factor)
-    hx -= np.log(len(x))
-    hx += (psi(m) - np.log(m))
-    return hx
-
 def uniform_divergence(x, tx, m=2):
     x = normalize(x, tx)
     cx = Counter(x)
@@ -344,7 +332,7 @@ def fit_noise_entropy(x, tx, y, ty, ffactor=3, maxdev=3, minc=10):
         if cx[a] > minc:
             entyx.append(discrete_entropy(y[x==a], CATEGORICAL))
     if len(entyx) == 0: return 0
-    n = 2*(ffactor*maxdev+1) if numerical(ty) else count_unique(y)
+    n = len_discretized_values(y, ty, ffactor, maxdev)
     return np.std(entyx)/np.log(n)
 
 def fit_noise_skewness(x, tx, y, ty, ffactor=3, maxdev=3, minc=8):
@@ -383,14 +371,11 @@ def conditional_distribution_similarity(x, tx, y, ty, ffactor=2, maxdev=3, minc=
                 cyx = Counter(yx)
                 pyxa = np.array([cyx[i] for i in yrange], dtype=float)
                 pyxa.sort()
-            elif count_unique(y) > 2*(ffactor*maxdev+1):
-                yx = (yx - np.mean(yx))
-                #if np.std(yx) > 0: yx = yx/np.std(yx)
-                yx = np.floor(yx*ffactor)
-                yx[yx > ffactor*maxdev] = ffactor*maxdev
-                yx[yx < -(ffactor*maxdev+1)] = -(ffactor*maxdev+1)
+            elif count_unique(y) > len_discretized_values(y, ty, ffactor, maxdev):
+                yx = (yx - np.mean(yx))/np.std(y)
+                yx = discretized_sequence(yx, ty, ffactor, maxdev, norm=False)
                 cyx = Counter(yx.astype(int))
-                pyxa = np.array([cyx[i] for i in range(-(ffactor*maxdev+1), (ffactor*maxdev+1))], dtype=float)
+                pyxa = np.array([cyx[i] for i in discretized_values(y, ty, ffactor, maxdev)], dtype=float)
             else:
                 cyx = Counter(yx)
                 pyxa = [cyx[i] for i in yrange]
@@ -461,17 +446,17 @@ class MultiColumnTransform(BaseEstimator):
         return np.array([self.transformer(*x[1]) for x in X.iterrows()], ndmin=2).T
 
 all_features = [
-    ('Max', 'A', SimpleTransform(max)),
-    ('Max', 'B', SimpleTransform(max)),
-    ('Min', 'A', SimpleTransform(min)),
-    ('Min', 'B', SimpleTransform(min)),
-    ('Numerical', 'A type', SimpleTransform(lambda x: int(numerical(x)))),
-    ('Numerical', 'B type', SimpleTransform(lambda x: int(numerical(x)))),
+    ('Max', 'A', SimpleTransform(np.max)),
+    ('Max', 'B', SimpleTransform(np.max)),
+    ('Min', 'A', SimpleTransform(np.min)),
+    ('Min', 'B', SimpleTransform(np.min)),
+    ('Numerical', 'A type', SimpleTransform(numerical)),
+    ('Numerical', 'B type', SimpleTransform(numerical)),
     ('Sub', ['Numerical[A type]','Numerical[B type]'], MultiColumnTransform(operator.sub)),
     ('Abs', 'Sub[Numerical[A type],Numerical[B type]]', SimpleTransform(abs)),
     
     ('Number of Samples', 'A', SimpleTransform(len)),
-    ('Log', 'Number of Samples[A]', SimpleTransform(np.log)),
+    ('Log', 'Number of Samples[A]', SimpleTransform(math.log)),
     
     ('Number of Unique Samples', 'A', SimpleTransform(count_unique)),
     ('Number of Unique Samples', 'B', SimpleTransform(count_unique)),
@@ -480,8 +465,8 @@ all_features = [
     ('Sub', ['Number of Unique Samples[A]','Number of Unique Samples[B]'], MultiColumnTransform(operator.sub)),
     ('Abs', 'Sub[Number of Unique Samples[A],Number of Unique Samples[B]]', SimpleTransform(abs)),
     
-    ('Log', 'Number of Unique Samples[A]', SimpleTransform(np.log)),
-    ('Log', 'Number of Unique Samples[B]', SimpleTransform(np.log)),
+    ('Log', 'Number of Unique Samples[A]', SimpleTransform(math.log)),
+    ('Log', 'Number of Unique Samples[B]', SimpleTransform(math.log)),
     ('Max', ['Log[Number of Unique Samples[A]]','Log[Number of Unique Samples[B]]'], MultiColumnTransform(max)),
     ('Min', ['Log[Number of Unique Samples[A]]','Log[Number of Unique Samples[B]]'], MultiColumnTransform(min)),
     ('Sub', ['Log[Number of Unique Samples[A]]','Log[Number of Unique Samples[B]]'], MultiColumnTransform(operator.sub)),
@@ -512,13 +497,6 @@ all_features = [
     ('IGCI', ['B','B type','A','A type'], MultiColumnTransform(igci)),
     ('Sub', ['IGCI[A,A type,B,B type]','IGCI[B,B type,A,A type]'], MultiColumnTransform(operator.sub)),
     ('Abs', 'Sub[IGCI[A,A type,B,B type],IGCI[B,B type,A,A type]]', SimpleTransform(abs)),
-
-    ('Gaussian Divergence', ['A','A type'], MultiColumnTransform(gaussian_divergence)),
-    ('Gaussian Divergence', ['B','B type'], MultiColumnTransform(gaussian_divergence)),
-    ('Max', ['Gaussian Divergence[A,A type]','Gaussian Divergence[B,B type]'], MultiColumnTransform(max)),
-    ('Min', ['Gaussian Divergence[A,A type]','Gaussian Divergence[B,B type]'], MultiColumnTransform(min)),
-    ('Sub', ['Gaussian Divergence[A,A type]','Gaussian Divergence[B,B type]'], MultiColumnTransform(operator.sub)),
-    ('Abs', 'Sub[Gaussian Divergence[A,A type],Gaussian Divergence[B,B type]]', SimpleTransform(abs)),
     
     ('Uniform Divergence', ['A','A type'], MultiColumnTransform(uniform_divergence)),
     ('Uniform Divergence', ['B','B type'], MultiColumnTransform(uniform_divergence)),
@@ -629,14 +607,47 @@ all_features = [
     ('Abs', 'Pearson R[A,A type,B,B type]', SimpleTransform(abs))
     ]
 
-def extract_features(X, features=all_features, y=None):
-    for feature_name, column_names, extractor in features:
+def calculate_method(args):
+    obj = args[0]
+    name = args[1]
+    margs = args[2]
+    method = getattr(obj, name)
+    return method(*margs)
+
+def extract_features(X, features=all_features, y=None, n_jobs=-1):
+    if n_jobs != 1:
+        pool = Pool(n_jobs if n_jobs != -1 else None)
+        pmap = pool.map
+    else:
+        pmap = map
+        
+    def complete_feature_name(feature_name, column_names):
         if type(column_names) is list:
-            feature_name = feature_name + '[' + ','.join(column_names) + ']'
+            long_feature_name = feature_name + '[' + ','.join(column_names) + ']'
         else:
-            feature_name = feature_name + '[' + column_names + ']'            
-        if (feature_name[0] == '+') or (feature_name not in X.columns):
-            if feature_name[0] == '+':
-                feature_name = feature_name[1:]
-            X[feature_name] = extractor.fit_transform(X[column_names], y)
+            long_feature_name = feature_name + '[' + column_names + ']'
+        if feature_name[0] == '+':
+            long_feature_name = long_feature_name[1:]
+        return long_feature_name
+    
+    def is_in_X(column_names):
+        if type(column_names) is list:
+            return set(column_names).issubset(X.columns)
+        else:
+            return column_names in X.columns
+        
+    def can_be_extracted(feature_name, column_names):
+        long_feature_name = complete_feature_name(feature_name, column_names)
+        to_be_extracted = ((feature_name[0] == '+') or (long_feature_name not in X.columns))
+        return to_be_extracted and is_in_X(column_names)
+
+    while True:
+        new_features_list = [(complete_feature_name(feature_name, column_names), column_names, extractor) 
+            for feature_name, column_names, extractor in features if can_be_extracted(feature_name, column_names)]
+        if not new_features_list:
+            break
+        task = [(extractor, 'fit_transform', (X[column_names], y)) for _, column_names, extractor in new_features_list]
+        new_features = pmap(calculate_method, task)
+        for (feature_name, _, _), feature in zip(new_features_list, new_features):
+            X[feature_name] = feature
     return X
