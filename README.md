@@ -32,14 +32,14 @@ FAST TEST (first 9 entries of the validation data)
 Time to process: 10 seconds
 Results: (CEfinal_valid_predictions_head.csv rounded to 4 decimals places)
 SampleID,Target
-valid1, 0.7036
-valid2,-0.0044
-valid3, 0.0002
-valid4, 0.0012
-valid5, 0.0230
-valid6,-0.5477
-valid7,-0.1196
-valid8, 0.0001
-valid9,-0.0042
+valid1, 0.70
+valid2, 0.00
+valid3, 0.00
+valid4, 0.00
+valid5, 0.00
+valid6,-0.55
+valid7,-0.14
+valid8, 0.00
+valid9,-0.01
 
 See the data page of the Kaggle cause-effect competition for information about the data
