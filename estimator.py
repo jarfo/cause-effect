@@ -85,7 +85,7 @@ class Pipeline(pipeline.Pipeline):
             elif p.shape[1] == 3:
                 p = p[:,2] - p[:,0]
         except AttributeError:
-            p = super(Pipeline, self).predict(self, X)
+            p = super(Pipeline, self).predict(X)
         return p
 
 def get_pipeline(features, regressor=None, params=None):
