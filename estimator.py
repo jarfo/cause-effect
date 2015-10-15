@@ -79,15 +79,14 @@ selected_features = [
 class Pipeline(pipeline.Pipeline):
     def predict(self, X):
         try:
-            p = pipeline.Pipeline.predict_proba(self, X)
+            p = super(Pipeline, self).predict_proba(X)
             if p.shape[1] == 2:
                 p = p[:,1]
             elif p.shape[1] == 3:
                 p = p[:,2] - p[:,0]
         except AttributeError:
-            p = pipeline.Pipeline.predict(self, X)
+            p = super(Pipeline, self).predict(self, X)
         return p
-
 
 def get_pipeline(features, regressor=None, params=None):
     steps = [

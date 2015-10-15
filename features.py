@@ -116,7 +116,6 @@ def normalized_error_probability(x, tx, y, ty, ffactor=3, maxdev=3):
     perr = 1 - np.sum(pxy.max(axis=1))
     max_perr = 1 - np.max(pxy.sum(axis=0))
     pnorm = perr/max_perr if max_perr > 0 else perr
-    assert (pnorm <= 1)
     return pnorm
 
 def discrete_entropy(x, tx, ffactor=3, maxdev=3, bias_factor=0.7):
